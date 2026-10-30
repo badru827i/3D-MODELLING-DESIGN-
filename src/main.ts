@@ -50,7 +50,53 @@ function bounds(o:ModelObject){o.geometry.computeBoundingBox();const b=o.geometr
 function create(shape:Shape){let g:THREE.BufferGeometry;if(shape==='box')g=new THREE.BoxGeometry(100,100,100);else if(shape==='cylinder')g=new THREE.CylinderGeometry(50,50,100,64);else if(shape==='sphere')g=new THREE.SphereGeometry(50,48,32);else g=new THREE.ConeGeometry(50,100,64);const o=new THREE.Mesh(g,material()) as ModelObject;o.castShadow=true;o.receiveShadow=true;o.position.y=shape==='plane'?0.1:50;o.userData={label:shape[0].toUpperCase()+shape.slice(1)+' '+counter++,shape};scene.add(o);objects.push(o);const empty=$('viewport-empty');if(empty)empty.style.display='none';select(o)}
 function renderList(){ $('object-count').textContent=String(objects.length);setText('object-count-footer',objects.length+' object'+(objects.length===1?'':'s'));$('object-list').innerHTML=objects.length?objects.map((o,i)=>'<button class="object-item '+(o===selected?'selected':'')+'" data-index="'+i+'"><span class="object-glyph">◇</span><span>'+o.userData.label+'</span><span class="object-eye">◉</span></button>').join(''):'<div class="empty-list">Your model tree will appear here.</div>';$('object-list').querySelectorAll<HTMLButtonElement>('[data-index]').forEach(b=>b.onclick=()=>select(objects[Number(b.dataset.index)]))}
 function select(o:ModelObject|null){selected=o;transform.detach();objects.forEach(x=>x.material.emissive.setHex(x===o?0x142b55:0));if(o){transform.attach(o);$('selection-status').textContent=o.userData.label;setText('selected-object-name',o.userData.label);setText('selected-object-type',o.userData.shape.toUpperCase()+' · 3D MESH');updateMeasurements()}else{$('selection-status').textContent='No object selected';setText('selected-object-name','No selection');setText('selected-object-type','Select a scene object');$('dimension-editor').innerHTML='<div class="empty-list">Select an object to edit its dimensions.</div>';['measure-x','measure-y','measure-z'].forEach(id=>$(id).textContent='—');const empty=$('viewport-empty');if(empty)empty.style.display='flex'}renderList()}
-function updateMeasurements(){if(!selected)return;const s=bounds(selected);$('measure-x').textContent=fmt(s.x);$('measure-y').textContent=fmt(s.y);$('measure-z').textContent=fmt(s.z);const shape=selected.userData.shape;const entries=shape==='sphere'?[['Diameter',s.x]]:shape==='box'?[['Width X',s.x],['Height Y',s.y],['Depth Z',s.z]]:shape==='plane'?[['Width X',s.x],['Depth Z',s.z]]:[['Diameter',s.x],['Height',s.y]];$('dimension-editor').innerHTML=entries.map(([label,v],i)=>'<label class="dimension-field"><span>'+label+'</span><span class="input-wrap"><input type="number" min=".001" step=".1" data-dim="'+i+'" value="'+(Number(v)/FACTOR[unit]).toFixed(3)+'"><small>'+unit+'</small></span></label>').join('');$('dimension-editor').querySelectorAll<HTMLInputElement>('input').forEach(input=>input.onchange=()=>applyDim(Number(input.dataset.dim),Number(input.value)*FACTOR[unit]))}
+function updateMeasurements(){if(!selected)return;const s=bounds(selected);$('measure-x').textContent=fmt(s.x);$('measure-y').textContent=fmt(s.y);$('measure-z').textContent=fmt(s.z);const shape=selected.userData.shape;const entries=shape==='sphere'?[['Diameter',s.x]]:shape==='box'?[['Width X',s.x],['Height Y',s.y],['Depth Z',s.z]]:shape==='plane'?[['Width X',s.x],['Depth Z',s.z]]:[['Diameter',s.x],['Height',s.y]];$('dimension-editor').innerHTML=entries.map(([label,v],i)=>'<label class="dimension-field"><span>'+label+'</span><span class="input-wrap"><input type="number" min=".001" step=".1" data-dim="'+i+'" value="'+(Number(v)/FACTOR[unit]).toFixed(3)+'"><small>'+unit+'</small></span></label>').join('');$('dimension-editor').querySelectorAll<HTMLInputElement>('input').forEach(input=>input.onchange=()=>applyDim(Number(input.dataset.dim),Number(input.value)*FACTOR[unit]));updateEngineeringAnalysis()}
+type VertexMeasure={key:string;point:THREE.Vector3;neighbors:THREE.Vector3[];angles:number[]};
+function fmtPower(mm:number,power:number){const value=mm/Math.pow(FACTOR[unit],power);return value.toFixed(3).replace(/\\.?0+$/,'')+' '+unit+(power===2?'²':'³')}
+function analyzeGeometry(o:ModelObject){
+  o.updateMatrixWorld(true);
+  const pos=o.geometry.getAttribute('position') as THREE.BufferAttribute;
+  const vertices=new Map<string,VertexMeasure>();
+  const keyOf=(p:THREE.Vector3)=>[p.x,p.y,p.z].map(n=>Math.round(n*1e5)/1e5).join(',');
+  for(let i=0;i<pos.count;i++){
+    const p=new THREE.Vector3().fromBufferAttribute(pos,i).applyMatrix4(o.matrixWorld),key=keyOf(p);
+    if(!vertices.has(key))vertices.set(key,{key,point:p,neighbors:[],angles:[]});
+  }
+  const edges=new THREE.EdgesGeometry(o.geometry,1),ep=edges.getAttribute('position') as THREE.BufferAttribute,edgeSet=new Set<string>();
+  let edgeTotal=0,edgeMin=Infinity,edgeMax=0;
+  for(let i=0;i+1<ep.count;i+=2){
+    const a=new THREE.Vector3().fromBufferAttribute(ep,i).applyMatrix4(o.matrixWorld),b=new THREE.Vector3().fromBufferAttribute(ep,i+1).applyMatrix4(o.matrixWorld),ka=keyOf(a),kb=keyOf(b),ek=ka<kb?ka+'|'+kb:kb+'|'+ka;
+    if(edgeSet.has(ek))continue;edgeSet.add(ek);
+    const length=a.distanceTo(b);edgeTotal+=length;edgeMin=Math.min(edgeMin,length);edgeMax=Math.max(edgeMax,length);
+    const va=vertices.get(ka),vb=vertices.get(kb);if(va&&vb){va.neighbors.push(b);vb.neighbors.push(a)}
+  }
+  edges.dispose();
+  for(const v of vertices.values()){
+    const dirs=v.neighbors.map(n=>n.clone().sub(v.point).normalize());
+    for(let a=0;a<dirs.length;a++)for(let b=a+1;b<dirs.length;b++)v.angles.push(THREE.MathUtils.radToDeg(dirs[a].angleTo(dirs[b])));
+  }
+  let area=0,volume=0;
+  const index=o.geometry.getIndex(),count=index?index.count:pos.count;
+  for(let i=0;i+2<count;i+=3){
+    const ia=index?index.getX(i):i,ib=index?index.getX(i+1):i+1,ic=index?index.getX(i+2):i+2;
+    const a=new THREE.Vector3().fromBufferAttribute(pos,ia).applyMatrix4(o.matrixWorld),b=new THREE.Vector3().fromBufferAttribute(pos,ib).applyMatrix4(o.matrixWorld),d=new THREE.Vector3().fromBufferAttribute(pos,ic).applyMatrix4(o.matrixWorld);
+    area+=b.clone().sub(a).cross(d.clone().sub(a)).length()/2;
+    volume+=a.dot(b.clone().cross(d))/6;
+  }
+  const angles=Array.from(vertices.values()).flatMap(v=>v.angles);
+  return {vertices:Array.from(vertices.values()),edgeCount:edgeSet.size,edgeMin:Number.isFinite(edgeMin)?edgeMin:0,edgeMax,edgeAverage:edgeSet.size?edgeTotal/edgeSet.size:0,area,volume:Math.abs(volume)<1e-6?0:Math.abs(volume),angleMin:angles.length?Math.min(...angles):0,angleMax:angles.length?Math.max(...angles):0};
+}
+function updateEngineeringAnalysis(){
+  const panel=$('engineering-analysis');if(!panel||!selected)return;
+  const a=analyzeGeometry(selected),angle=(v:number)=>v.toFixed(2)+'°';
+  setText('analysis-vertices',String(a.vertices.length));setText('analysis-edges',String(a.edgeCount));
+  setText('analysis-edge-range',a.edgeCount?fmt(a.edgeMin)+' – '+fmt(a.edgeMax):'—');
+  setText('analysis-edge-average',a.edgeCount?fmt(a.edgeAverage):'—');
+  setText('analysis-angle-range',a.angleMin||a.angleMax?angle(a.angleMin)+' – '+angle(a.angleMax):'—');
+  setText('analysis-area',fmtPower(a.area,2));setText('analysis-volume',fmtPower(a.volume,3));
+  const body=$('vertex-table-body');
+  if(body)body.innerHTML=a.vertices.map((v,i)=>'<tr><td>'+i+'</td><td>'+fmt(v.point.x)+'</td><td>'+fmt(v.point.y)+'</td><td>'+fmt(v.point.z)+'</td><td>'+(v.angles.length?v.angles.map(angle).join(', '):'—')+'</td></tr>').join('');
+}
 function applyDim(i:number,mm:number){if(!selected||!Number.isFinite(mm)||mm<=0)return;const o=selected,s=bounds(o),shape=o.userData.shape;if(shape==='box'){const v=[s.x,s.y,s.z];v[i]=mm;o.scale.set(v[0]/100,v[1]/100,v[2]/100)}else if(shape==='sphere')o.scale.setScalar(mm/100);else if(shape==='plane'){if(i===0)o.scale.x=mm/100;else o.scale.z=mm/100}else if(i===0){o.scale.x=mm/100;o.scale.z=mm/100}else o.scale.y=mm/100;updateMeasurements();renderList()}
 function download(data:string|ArrayBuffer|ArrayBufferView,name:string,type:string){const u=URL.createObjectURL(new Blob([data],{type})),a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u)}
 function exportModel(kind:'stl'|'obj'){if(!objects.length){alert('Create an object before exporting.');return}const group=new THREE.Group();objects.forEach(o=>group.add(o.clone()));group.updateMatrixWorld(true);if(kind==='stl')download(new STLExporter().parse(group,{binary:true}),'prisma-model.stl','application/octet-stream');else download(new OBJExporter().parse(group),'prisma-model.obj','text/plain')}
