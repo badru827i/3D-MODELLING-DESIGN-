@@ -86,7 +86,26 @@ function analyzeGeometry(o:ModelObject){
   const angles=Array.from(vertices.values()).flatMap(v=>v.angles);
   return {vertices:Array.from(vertices.values()),edgeCount:edgeSet.size,edgeMin:Number.isFinite(edgeMin)?edgeMin:0,edgeMax,edgeAverage:edgeSet.size?edgeTotal/edgeSet.size:0,area,volume:Math.abs(volume)<1e-6?0:Math.abs(volume),angleMin:angles.length?Math.min(...angles):0,angleMax:angles.length?Math.max(...angles):0};
 }
+function ensureAnalysisPanel(){
+  if($('engineering-analysis'))return;
+  const host=$('dimension-editor')?.parentElement;if(!host)return;
+  const panel=document.createElement('section');panel.id='engineering-analysis';panel.style.cssText='margin-top:16px;padding-top:12px;border-top:1px solid rgba(140,170,220,.18);font-size:12px';
+  const heading=document.createElement('div');heading.textContent='ENGINEERING ANALYSIS · LIVE';heading.style.cssText='font-weight:700;letter-spacing:.12em;margin-bottom:10px';panel.append(heading);
+  const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px';
+  for(const [label,id] of [['VERTICES','analysis-vertices'],['EDGES','analysis-edges']]){
+    const cell=document.createElement('div'),small=document.createElement('small'),value=document.createElement('b');small.textContent=label;value.id=id;value.textContent='—';cell.append(small,value);grid.append(cell);
+  }
+  panel.append(grid);
+  for(const [label,id] of [['Edge length range','analysis-edge-range'],['Average edge','analysis-edge-average'],['Connected-edge angles','analysis-angle-range'],['Surface area','analysis-area'],['Enclosed volume','analysis-volume']]){
+    const row=document.createElement('div'),name=document.createElement('span'),value=document.createElement('b');row.className='measure-row';name.textContent=label;value.id=id;value.textContent='—';row.append(name,value);panel.append(row);
+  }
+  const details=document.createElement('details'),summary=document.createElement('summary'),wrap=document.createElement('div'),table=document.createElement('table'),thead=document.createElement('thead'),tr=document.createElement('tr'),tbody=document.createElement('tbody');
+  summary.textContent='Vertex coordinates & angles';summary.style.cursor='pointer';wrap.style.cssText='overflow:auto;max-height:220px';table.style.cssText='width:100%;font-size:10px;text-align:left';
+  for(const label of ['#','X','Y','Z','Angles']){const th=document.createElement('th');th.textContent=label;tr.append(th)}
+  thead.append(tr);tbody.id='vertex-table-body';table.append(thead,tbody);wrap.append(table);details.append(summary,wrap);panel.append(details);host.append(panel);
+}
 function updateEngineeringAnalysis(){
+  ensureAnalysisPanel();
   const panel=$('engineering-analysis');if(!panel||!selected)return;
   const a=analyzeGeometry(selected),angle=(v:number)=>v.toFixed(2)+'°';
   setText('analysis-vertices',String(a.vertices.length));setText('analysis-edges',String(a.edgeCount));
@@ -95,7 +114,7 @@ function updateEngineeringAnalysis(){
   setText('analysis-angle-range',a.angleMin||a.angleMax?angle(a.angleMin)+' – '+angle(a.angleMax):'—');
   setText('analysis-area',fmtPower(a.area,2));setText('analysis-volume',fmtPower(a.volume,3));
   const body=$('vertex-table-body');
-  if(body)body.innerHTML=a.vertices.map((v,i)=>'<tr><td>'+i+'</td><td>'+fmt(v.point.x)+'</td><td>'+fmt(v.point.y)+'</td><td>'+fmt(v.point.z)+'</td><td>'+(v.angles.length?v.angles.map(angle).join(', '):'—')+'</td></tr>').join('');
+  if(body){body.replaceChildren();a.vertices.forEach((v,i)=>{const row=document.createElement('tr');for(const value of [String(i),fmt(v.point.x),fmt(v.point.y),fmt(v.point.z),v.angles.length?v.angles.map(angle).join(', '):'—']){const cell=document.createElement('td');cell.textContent=value;row.append(cell)}body.append(row)})}
 }
 function applyDim(i:number,mm:number){if(!selected||!Number.isFinite(mm)||mm<=0)return;const o=selected,s=bounds(o),shape=o.userData.shape;if(shape==='box'){const v=[s.x,s.y,s.z];v[i]=mm;o.scale.set(v[0]/100,v[1]/100,v[2]/100)}else if(shape==='sphere')o.scale.setScalar(mm/100);else if(shape==='plane'){if(i===0)o.scale.x=mm/100;else o.scale.z=mm/100}else if(i===0){o.scale.x=mm/100;o.scale.z=mm/100}else o.scale.y=mm/100;updateMeasurements();renderList()}
 function download(data:string|ArrayBuffer|ArrayBufferView,name:string,type:string){const u=URL.createObjectURL(new Blob([data],{type})),a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u)}
