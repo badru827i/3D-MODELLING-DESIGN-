@@ -4,12 +4,12 @@ on:
     branches: [main]
     paths:
       - "native/**"
-      - ".github/workflows/build.yml"
+      - ".github/workflows/native-build.yml"
   pull_request:
     branches: [main]
     paths:
       - "native/**"
-      - ".github/workflows/build.yml"
+      - ".github/workflows/native-build.yml"
   workflow_dispatch:
 
 jobs:
@@ -71,7 +71,7 @@ jobs:
         with:
           version: "6.8.3"
           arch: win64_msvc2022_64
-          modules: qtquick3d
+          modules: qtquick3d, qtshadertools
           cache: true
       - uses: ilammy/msvc-dev-cmd@v1
         with:
