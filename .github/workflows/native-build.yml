@@ -39,7 +39,7 @@ jobs:
           version: "6.8.3"
           target: android
           arch: android_arm64_v8a
-          modules: qtquick3d
+          modules: qtquick3d, qtshadertools
           cache: true
 
       - name: Configure native Android app
@@ -73,8 +73,11 @@ jobs:
           arch: win64_msvc2022_64
           modules: qtquick3d
           cache: true
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
       - name: Configure
-        run: cmake -S native -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S native -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
       - name: Build
         run: cmake --build build --parallel 2
       - uses: actions/upload-artifact@v4
