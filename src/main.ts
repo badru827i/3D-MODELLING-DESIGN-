@@ -25,7 +25,7 @@ const gpuName=/adreno/i.test(rawGpu)?'Qualcomm Adreno':/mali|immortalis/i.test(r
 const maxTexture=gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
 const maxSamples=gl.getParameter(gl.MAX_SAMPLES) as number;
 const gpuTier=maxTexture>=8192&&maxSamples>=4?3:maxTexture>=4096?2:1;
-const renderer=new THREE.WebGLRenderer({canvas:document.createElement('canvas'),context:gl,antialias:gpuTier>=2,powerPreference:'high-performance',failIfMajorPerformanceCaveat:false});
+const renderer=new THREE.WebGLRenderer({canvas:probe,context:gl,antialias:gpuTier>=2,powerPreference:'high-performance',failIfMajorPerformanceCaveat:false});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,gpuTier===3?2:gpuTier===2?1.5:1));
 renderer.shadowMap.enabled=gpuTier>=2;
 renderer.outputColorSpace=THREE.SRGBColorSpace;
