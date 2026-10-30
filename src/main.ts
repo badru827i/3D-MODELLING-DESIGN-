@@ -11,7 +11,30 @@ const FACTOR:Record<Unit,number>={mm:1,cm:10,m:1000,in:25.4};
 const $=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
 const viewport=$('viewport'),scene=new THREE.Scene(); scene.background=new THREE.Color('#111c2b'); scene.fog=new THREE.Fog('#111c2b',4500,18000);
 const camera=new THREE.PerspectiveCamera(45,1,.1,50000); camera.position.set(900,700,1100);
-const renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.shadowMap.enabled=true; renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.15; viewport.prepend(renderer.domElement);
+// GPU compatibility: use the broadly supported WebGL2 path on Adreno, Mali/Immortalis and desktop GPUs.
+const probe=document.createElement('canvas');
+const gl=probe.getContext('webgl2',{powerPreference:'high-performance',failIfMajorPerformanceCaveat:false}) as WebGL2RenderingContext|null;
+if(!gl){
+  $('gpu-status').textContent='Graphics unsupported';
+  $('gpu-status').title='This browser/device does not expose WebGL 2. Try an updated Chrome, Edge or Firefox browser and enable hardware acceleration.';
+  throw new Error('PRISMA 3D requires WebGL 2. Update your browser and enable hardware acceleration.');
+}
+const debugInfo=gl.getExtension('WEBGL_debug_renderer_info');
+const rawGpu=debugInfo?String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)):String(gl.getParameter(gl.RENDERER));
+const gpuName=/adreno/i.test(rawGpu)?'Qualcomm Adreno':/mali|immortalis/i.test(rawGpu)?'MediaTek/Arm Mali or Immortalis':/nvidia|geforce/i.test(rawGpu)?'NVIDIA GPU':/radeon|amd/i.test(rawGpu)?'AMD GPU':/intel/i.test(rawGpu)?'Intel GPU':'WebGL 2 GPU';
+const maxTexture=gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
+const maxSamples=gl.getParameter(gl.MAX_SAMPLES) as number;
+const gpuTier=maxTexture>=8192&&maxSamples>=4?3:maxTexture>=4096?2:1;
+const renderer=new THREE.WebGLRenderer({canvas:document.createElement('canvas'),context:gl,antialias:gpuTier>=2,powerPreference:'high-performance',failIfMajorPerformanceCaveat:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,gpuTier===3?2:gpuTier===2?1.5:1));
+renderer.shadowMap.enabled=gpuTier>=2;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
+viewport.prepend(renderer.domElement);
+const gpuStatus=$('gpu-status');
+gpuStatus.textContent=gpuName+' · '+(gpuTier===3?'High':gpuTier===2?'Balanced':'Compatibility');
+gpuStatus.title='Renderer: WebGL 2 | GPU: '+rawGpu+' | Max texture: '+maxTexture+' | WebGPU: '+('gpu' in navigator?'available (future optional path)':'not available');
 scene.add(new THREE.HemisphereLight(0xc8dcff,0x253247,2.1)); const key=new THREE.DirectionalLight(0xffffff,2.6); key.position.set(900,1500,1000); key.castShadow=true; scene.add(key); const fill=new THREE.DirectionalLight(0x6e9dff,1.1); fill.position.set(-900,400,-700); scene.add(fill);
 const grid=new THREE.GridHelper(2000,100,0x45617e,0x293c53); grid.position.y=-.5; scene.add(grid); const axes=new THREE.AxesHelper(260); scene.add(axes);
 const orbit=new OrbitControls(camera,renderer.domElement); orbit.enableDamping=true; orbit.dampingFactor=.06; orbit.target.set(0,80,0);
