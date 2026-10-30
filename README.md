@@ -12,6 +12,8 @@ Cross-platform precision 3D modeling starter for Android and Windows. The first 
 - Binary STL and OBJ export
 - Save scene parameters to JSON
 - Responsive layout and basic service-worker caching
+- Adaptive WebGL 2 renderer with GPU capability detection and quality tiers
+- Compatibility path designed for Qualcomm Adreno, Arm Mali/Immortalis and desktop GPUs that expose WebGL 2
 
 ## Run locally
 ```bash
@@ -26,7 +28,7 @@ npm run preview
 ```
 
 ## Technology decision
-Three.js + TypeScript + Vite is the recommended first platform layer. It supports Windows and Android from one codebase and uses WebGL rendering with a lightweight install footprint. The app can be installed as a PWA from a supported browser. A native CAD kernel such as Open CASCADE is a later engineering milestone for parametric constraints, robust Boolean operations, STEP import/export and solid validation.
+Three.js + TypeScript + Vite is the recommended first platform layer. It supports Windows and Android from one codebase and uses WebGL 2 rendering with a lightweight install footprint. The renderer checks WebGL 2 availability and GPU limits at startup, then adjusts antialiasing, pixel ratio and shadows for high, balanced or compatibility quality. This avoids tying the app to a Qualcomm- or MediaTek-specific SDK. Qualcomm Adreno and MediaTek devices are supported when their browser and graphics driver expose a working WebGL 2 context. WebGPU is detected as a future optional path, not required. The app can be installed as a PWA from a supported browser. A native CAD kernel such as Open CASCADE is a later engineering milestone for parametric constraints, robust Boolean operations, STEP import/export and solid validation.
 
 ## Units and precision
 Internal model coordinates use millimetres. Unit selection changes display and input conversion only; it does not rescale stored geometry. This prevents unit drift when switching between mm, cm, m and inches.
