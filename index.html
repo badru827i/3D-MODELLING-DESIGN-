@@ -1,5 +1,121 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/><meta name="theme-color" content="#101827"/><meta name="description" content="PRISMA 3D Engineer — precision 3D modeling with real-world engineering units."/><link rel="manifest" href="/manifest.webmanifest"/><title>PRISMA 3D Engineer</title></head><body><div id="app">
-<header class="topbar"><a class="brand" href="#"><span class="brand-mark">P</span><span>PRISMA <b>3D</b><small>ENGINEER</small></span></a><div class="top-actions"><span id="gpu-status" class="gpu-status" title="GPU compatibility status">Detecting GPU…</span><span class="save-state">● Local workspace</span><button class="btn btn-quiet" id="new-project">New</button><button class="btn btn-primary" id="export-stl">Export STL</button></div></header>
-<main class="workspace"><aside class="left-panel panel"><div class="panel-heading"><span>CREATE</span><span class="muted">01</span></div><div class="tool-grid"><button class="tool-card active" data-shape="box"><span class="tool-icon">▰</span><b>Box</b><small>Prism</small></button><button class="tool-card" data-shape="cylinder"><span class="tool-icon">◉</span><b>Cylinder</b><small>Round</small></button><button class="tool-card" data-shape="sphere"><span class="tool-icon">●</span><b>Sphere</b><small>Ball</small></button><button class="tool-card" data-shape="cone"><span class="tool-icon">▲</span><b>Cone</b><small>Taper</small></button></div><div class="panel-divider"></div><div class="panel-heading"><span>SCENE OBJECTS</span><span class="muted" id="object-count">0</span></div><div id="object-list" class="object-list"><div class="empty-list">Your model tree will appear here.</div></div><div class="panel-foot"><span class="status-dot"></span> 3D workspace ready</div></aside>
-<section class="viewport-wrap"><div class="viewport-toolbar"><div class="view-tabs"><button class="view-tab selected" data-view="perspective">3D View</button><button class="view-tab" data-view="top">Top</button><button class="view-tab" data-view="front">Front</button><button class="view-tab" data-view="right">Right</button></div><div class="viewport-actions"><button id="fit-view" class="icon-btn" title="Fit model">⌗</button><button id="grid-toggle" class="icon-btn toggled" title="Toggle grid">▦</button><button id="axes-toggle" class="icon-btn toggled" title="Toggle axes">XYZ</button></div></div><div id="viewport" class="viewport"><div class="viewport-hint">Drag to orbit · Scroll to zoom · Right-drag to pan</div><div class="axis-legend">X <i>Y</i> <em>Z</em></div></div><div class="viewport-footer"><span id="selection-status">No object selected</span><span>Units: <b id="unit-readout">mm</b></span><span id="camera-status">Perspective</span></div></section>
-<aside class="right-panel panel"><div class="panel-heading"><span>DOCUMENT</span><span class="muted">SETTINGS</span></div><label class="field-label" for="unit-select">Working unit</label><select id="unit-select" class="select-control"><option value="mm">Millimeter (mm)</option><option value="cm">Centimeter (cm)</option><option value="m">Meter (m)</option><option value="in">Inch (in)</option></select><p class="field-note">Changing units changes displayed values, not the physical size of your model.</p><div class="panel-divider"></div><div class="panel-heading"><span>TRANSFORM</span><span class="muted" id="transform-mode">MOVE</span></div><div class="segmented"><button class="selected" data-mode="translate">Move</button><button data-mode="rotate">Rotate</button><button data-mode="scale">Scale</button></div><div class="panel-divider"></div><div class="panel-heading"><span>PRECISE DIMENSIONS</span><span class="muted">REAL SIZE</span></div><div id="dimension-editor" class="dimension-editor"><div class="empty-list">Select an object to edit its dimensions.</div></div><div class="panel-divider"></div><div class="panel-heading"><span>MEASUREMENT</span><span class="muted">BOUNDING SIZE</span></div><div class="measure-row"><span>Width X</span><b id="measure-x">—</b></div><div class="measure-row"><span>Height Y</span><b id="measure-y">—</b></div><div class="measure-row"><span>Depth Z</span><b id="measure-z">—</b></div><div class="panel-divider"></div><div class="export-row"><button class="btn btn-secondary" id="export-obj">Export OBJ</button><button class="btn btn-secondary" id="save-project">Save JSON</button></div><p class="field-note disclaimer">Prototype precision modeler. Verify tolerances and drawings in a certified CAD workflow before manufacturing.</p></aside></main></div><script type="module" src="/src/main.ts"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#070b17" />
+  <meta name="description" content="PRISMA 3D Engineer — precision 3D modeling with real-world engineering units." />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <title>PRISMA 3D Engineer</title>
+</head>
+<body>
+<div id="app" class="app-shell">
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="PRISMA 3D Engineer home">
+      <span class="brand-mark">P</span>
+      <span class="brand-copy"><strong>PRISMA</strong><small>3D ENGINEER</small></span>
+    </a>
+    <div class="project-name"><span class="project-dot"></span><span>Untitled Engineering Project</span></div>
+    <div class="top-actions">
+      <span class="save-state">● Local workspace</span>
+      <label class="top-unit"><span>UNIT</span><select id="unit-select" aria-label="Working unit"><option value="mm">MM</option><option value="cm">CM</option><option value="m">M</option><option value="in">IN</option></select></label>
+      <button class="btn btn-quiet" id="new-project">New project</button>
+      <button class="btn btn-primary" id="export-stl">Export STL <span aria-hidden="true">↗</span></button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <aside class="left-panel panel">
+      <div class="panel-kicker">WORKSPACE</div>
+      <nav class="workspace-nav" aria-label="Workspace sections">
+        <div class="nav-item active"><span>▦</span> Model workspace</div>
+        <div class="nav-item"><span>◇</span> Parts library</div>
+        <div class="nav-item"><span>▤</span> Technical drawing</div>
+        <div class="nav-item"><span>◈</span> Projects</div>
+      </nav>
+      <div class="panel-divider"></div>
+      <div class="panel-heading"><span>SCENE TREE</span><span class="muted" id="object-count">0</span></div>
+      <div class="scene-root">⌄ <span>Scene</span></div>
+      <div id="object-list" class="object-list"><div class="empty-list">Your model tree will appear here.</div></div>
+      <div class="create-section">
+        <div class="panel-heading"><span>QUICK CREATE</span><span class="muted">PRIMITIVES</span></div>
+        <div class="tool-grid">
+          <button class="tool-card" data-shape="box"><span class="tool-icon">▰</span><b>Box</b></button>
+          <button class="tool-card" data-shape="cylinder"><span class="tool-icon">◉</span><b>Cylinder</b></button>
+          <button class="tool-card" data-shape="sphere"><span class="tool-icon">●</span><b>Sphere</b></button>
+          <button class="tool-card" data-shape="cone"><span class="tool-icon">▲</span><b>Cone</b></button>
+        </div>
+      </div>
+      <button class="gpu-mini-card" id="gpu-card" type="button" aria-label="View graphics compatibility">
+        <span class="gpu-card-kicker">GPU ADAPTIVE</span>
+        <strong id="gpu-card-name">WebGL 2 · Auto</strong>
+        <span class="gpu-ready"><i></i> <span id="gpu-card-state">Detecting</span></span>
+      </button>
+    </aside>
+
+    <section class="viewport-wrap">
+      <div class="viewport-toolbar">
+        <div class="viewport-title"><span>MODEL</span><b>/</b><strong>3D VIEWPORT</strong></div>
+        <div class="view-tabs">
+          <button class="view-tab selected" data-view="perspective">Perspective</button>
+          <button class="view-tab" data-view="top">Top</button>
+          <button class="view-tab" data-view="front">Front</button>
+          <button class="view-tab" data-view="right">Right</button>
+        </div>
+        <div class="viewport-actions">
+          <button id="fit-view" class="icon-btn" title="Fit model to view">⌗</button>
+          <button id="grid-toggle" class="icon-btn toggled" title="Toggle grid">GRID</button>
+          <button id="axes-toggle" class="icon-btn toggled" title="Toggle axes">AXES</button>
+        </div>
+      </div>
+      <div id="viewport" class="viewport">
+        <div class="viewport-hint">DRAG TO ORBIT <span>·</span> SCROLL TO ZOOM <span>·</span> RIGHT-DRAG TO PAN</div>
+        <div class="axis-legend"><span>X</span><i>Y</i><em>Z</em></div>
+        <div class="viewport-empty" id="viewport-empty"><span class="empty-cube">◇</span><strong>Start your engineering model</strong><small>Add a primitive from Quick Create to begin.</small></div>
+      </div>
+      <div class="viewport-footer">
+        <span id="selection-status">No object selected</span>
+        <span>Units: <b id="unit-readout">mm</b></span>
+        <span id="camera-status">Perspective</span>
+        <span id="object-count-footer">0 objects</span>
+      </div>
+    </section>
+
+    <aside class="right-panel panel">
+      <div class="inspector-heading"><div><span class="panel-kicker">INSPECTOR</span><h2>Properties</h2></div><span class="inspector-badge">LIVE</span></div>
+      <div class="selected-object"><span class="selected-object-icon">◇</span><div><strong id="selected-object-name">No selection</strong><small id="selected-object-type">Select a scene object</small></div></div>
+      <div class="panel-divider"></div>
+      <div class="panel-heading"><span>TRANSFORM</span><span class="muted" id="transform-mode">MOVE</span></div>
+      <div class="segmented">
+        <button class="selected" data-mode="translate">Move</button>
+        <button data-mode="rotate">Rotate</button>
+        <button data-mode="scale">Scale</button>
+      </div>
+      <div class="panel-divider"></div>
+      <div class="panel-heading"><span>PRECISE DIMENSIONS</span><span class="muted">REAL SIZE</span></div>
+      <div id="dimension-editor" class="dimension-editor"><div class="empty-list">Select an object to edit its dimensions.</div></div>
+      <div class="panel-divider"></div>
+      <div class="panel-heading"><span>MEASUREMENT</span><span class="muted">BOUNDING SIZE</span></div>
+      <div class="measure-row"><span>Width X</span><b id="measure-x">—</b></div>
+      <div class="measure-row"><span>Height Y</span><b id="measure-y">—</b></div>
+      <div class="measure-row"><span>Depth Z</span><b id="measure-z">—</b></div>
+      <div class="panel-divider"></div>
+      <div class="panel-heading"><span>EXPORT & SAVE</span><span class="muted">LOCAL</span></div>
+      <div class="export-row"><button class="btn btn-secondary" id="export-obj">Export OBJ</button><button class="btn btn-secondary" id="save-project">Save JSON</button></div>
+      <details class="graphics-details" id="graphics-details">
+        <summary><span class="graphics-summary-icon">✳</span><span><strong>Graphics compatibility</strong><small id="gpu-summary">WebGL 2 renderer status</small></span><span class="summary-chevron">⌄</span></summary>
+        <div class="graphics-info">
+          <div><span>GPU</span><b id="gpu-detail-name">Detecting…</b></div>
+          <div><span>Renderer</span><b>WebGL 2</b></div>
+          <div><span>Quality preset</span><b id="gpu-quality">Auto</b></div>
+          <div><span>Max texture</span><b id="gpu-texture">—</b></div>
+          <p>Uses the browser's available graphics driver. Actual support depends on device, browser and driver stability.</p>
+        </div>
+      </details>
+      <p class="disclaimer">Concept engineering modeler. Verify critical tolerances in a certified CAD workflow before manufacturing.</p>
+    </aside>
+  </main>
+</div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
