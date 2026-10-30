@@ -15,7 +15,7 @@ const camera=new THREE.PerspectiveCamera(45,1,.1,50000); camera.position.set(900
 const probe=document.createElement('canvas');
 const gl=probe.getContext('webgl2',{powerPreference:'high-performance',failIfMajorPerformanceCaveat:false}) as WebGL2RenderingContext|null;
 if(!gl){
-  $('gpu-status')?.textContent='Graphics unsupported';
+  const state=document.getElementById('gpu-card-state');if(state)state.textContent='Unsupported';
   throw new Error('PRISMA 3D requires WebGL 2. Update your browser and enable hardware acceleration.');
 }
 const debugInfo=gl.getExtension('WEBGL_debug_renderer_info');
@@ -32,8 +32,6 @@ renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.15;
 viewport.prepend(renderer.domElement);
-const gpuStatus=$('gpu-status');
-if(gpuStatus){gpuStatus.textContent=gpuName+' · '+qualityLabel;gpuStatus.title='Renderer: WebGL 2 | GPU: '+rawGpu+' | Max texture: '+maxTexture+' | WebGPU: '+('gpu' in navigator?'available (future optional path)':'not available')}
 const setText=(id:string,value:string)=>{const el=$(id);if(el)el.textContent=value};
 setText('gpu-card-name',gpuName+' · Auto');
 setText('gpu-card-state','Ready');
