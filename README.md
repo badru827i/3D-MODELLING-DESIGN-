@@ -4,11 +4,11 @@ Cross-platform precision 3D modeling starter for Android and Windows. The first 
 
 ## Current MVP
 - 3D viewport with orbit, zoom, pan, perspective/top/front/right views
-- Box, cylinder, sphere and cone primitives
+- Cube, cylinder, sphere, cone and plane primitives
 - Scene object list and selection
 - Move, rotate and scale gizmos
 - Real geometry dimensions displayed in mm, cm, m or inch
-- Primitive dimension editing
+- Primitive dimension editing, including plane width/depth
 - Binary STL and OBJ export
 - Save scene parameters to JSON
 - Responsive layout and basic service-worker caching
@@ -35,7 +35,7 @@ Internal model coordinates use millimetres. Unit selection changes display and i
 
 ## Roadmap
 1. Undo/redo, project import, autosave and object naming.
-2. Vertex/edge/face editing, snapping, constraints and dimension annotations.
+2. Full Blender-style vertex/edge/face editing, extrusion, inset, bevel, snapping, constraints and dimension annotations.
 3. CAD kernel integration for robust Boolean, fillet/chamfer and STEP.
 4. Technical drawings, tolerances, assemblies and BOM.
 5. Desktop packaging and Android native shell if browser PWA limits are reached.
