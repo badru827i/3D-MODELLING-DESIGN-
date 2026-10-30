@@ -4,7 +4,7 @@ project(PRISMA3DEngineer VERSION 0.2.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Quick Quick3D)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Quick Quick3D QuickControls2)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -29,6 +29,7 @@ set_target_properties(prisma3d PROPERTIES
 target_link_libraries(prisma3d PRIVATE
     Qt6::Quick
     Qt6::Quick3D
+    Qt6::QuickControls2
 )
 
 install(TARGETS prisma3d
