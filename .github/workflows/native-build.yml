@@ -1,4 +1,5 @@
-name: PRISMA Native Builds
+name: PRISMA Android Build
+
 on:
   push:
     branches: [main]
@@ -14,7 +15,7 @@ on:
 
 jobs:
   android-arm64:
-    name: Native Android APK (arm64-v8a)
+    name: PRISMA Android APK (arm64-v8a)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +40,7 @@ jobs:
           version: "6.8.3"
           target: android
           arch: android_arm64_v8a
-          modules: qtquick3d, qtshadertools
+          modules: "qtquick3d,qtshadertools"
           cache: true
 
       - name: Configure native Android app
@@ -59,30 +60,5 @@ jobs:
         with:
           name: prisma-3d-engineer-native-android-arm64
           path: build-android/android-build/*.apk
-          if-no-files-found: error
-          retention-days: 30
-
-  windows-desktop:
-    name: Native Windows x64 build
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: jurplel/install-qt-action@v4
-        with:
-          version: "6.8.3"
-          arch: win64_msvc2022_64
-          modules: qtquick3d, qtshadertools
-          cache: true
-      - uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-      - name: Configure
-        run: cmake -S native -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-      - name: Build
-        run: cmake --build build --parallel 2
-      - uses: actions/upload-artifact@v4
-        with:
-          name: prisma-3d-engineer-native-windows-x64
-          path: build/
           if-no-files-found: error
           retention-days: 30
