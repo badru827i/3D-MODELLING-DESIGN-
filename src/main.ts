@@ -15,8 +15,7 @@ const camera=new THREE.PerspectiveCamera(45,1,.1,50000); camera.position.set(900
 const probe=document.createElement('canvas');
 const gl=probe.getContext('webgl2',{powerPreference:'high-performance',failIfMajorPerformanceCaveat:false}) as WebGL2RenderingContext|null;
 if(!gl){
-  $('gpu-status').textContent='Graphics unsupported';
-  $('gpu-status').title='This browser/device does not expose WebGL 2. Try an updated Chrome, Edge or Firefox browser and enable hardware acceleration.';
+  $('gpu-status')?.textContent='Graphics unsupported';
   throw new Error('PRISMA 3D requires WebGL 2. Update your browser and enable hardware acceleration.');
 }
 const debugInfo=gl.getExtension('WEBGL_debug_renderer_info');
@@ -25,6 +24,7 @@ const gpuName=/adreno/i.test(rawGpu)?'Qualcomm Adreno':/mali|immortalis/i.test(r
 const maxTexture=gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
 const maxSamples=gl.getParameter(gl.MAX_SAMPLES) as number;
 const gpuTier=maxTexture>=8192&&maxSamples>=4?3:maxTexture>=4096?2:1;
+const qualityLabel=gpuTier===3?'High':gpuTier===2?'Balanced':'Compatibility';
 const renderer=new THREE.WebGLRenderer({canvas:probe,context:gl,antialias:gpuTier>=2,powerPreference:'high-performance',failIfMajorPerformanceCaveat:false});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,gpuTier===3?2:gpuTier===2?1.5:1));
 renderer.shadowMap.enabled=gpuTier>=2;
@@ -33,8 +33,14 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.15;
 viewport.prepend(renderer.domElement);
 const gpuStatus=$('gpu-status');
-gpuStatus.textContent=gpuName+' · '+(gpuTier===3?'High':gpuTier===2?'Balanced':'Compatibility');
-gpuStatus.title='Renderer: WebGL 2 | GPU: '+rawGpu+' | Max texture: '+maxTexture+' | WebGPU: '+('gpu' in navigator?'available (future optional path)':'not available');
+if(gpuStatus){gpuStatus.textContent=gpuName+' · '+qualityLabel;gpuStatus.title='Renderer: WebGL 2 | GPU: '+rawGpu+' | Max texture: '+maxTexture+' | WebGPU: '+('gpu' in navigator?'available (future optional path)':'not available')}
+const setText=(id:string,value:string)=>{const el=$(id);if(el)el.textContent=value};
+setText('gpu-card-name',gpuName+' · Auto');
+setText('gpu-card-state','Ready');
+setText('gpu-detail-name',rawGpu);
+setText('gpu-quality',qualityLabel);
+setText('gpu-texture',String(maxTexture)+' px');
+setText('gpu-summary',gpuName+' · WebGL 2 active');
 scene.add(new THREE.HemisphereLight(0xc8dcff,0x253247,2.1)); const key=new THREE.DirectionalLight(0xffffff,2.6); key.position.set(900,1500,1000); key.castShadow=true; scene.add(key); const fill=new THREE.DirectionalLight(0x6e9dff,1.1); fill.position.set(-900,400,-700); scene.add(fill);
 const grid=new THREE.GridHelper(2000,100,0x45617e,0x293c53); grid.position.y=-.5; scene.add(grid); const axes=new THREE.AxesHelper(260); scene.add(axes);
 const orbit=new OrbitControls(camera,renderer.domElement); orbit.enableDamping=true; orbit.dampingFactor=.06; orbit.target.set(0,80,0);
@@ -43,9 +49,9 @@ let unit:Unit='mm',objects:ModelObject[]=[],selected:ModelObject|null=null,count
 function fmt(mm:number){return (mm/FACTOR[unit]).toFixed(3).replace(/\.?0+$/,'')+' '+unit}
 function material(){return new THREE.MeshStandardMaterial({color:0x6c91d9,metalness:.34,roughness:.32})}
 function bounds(o:ModelObject){o.geometry.computeBoundingBox();const b=o.geometry.boundingBox!.getSize(new THREE.Vector3());return new THREE.Vector3(b.x*Math.abs(o.scale.x),b.y*Math.abs(o.scale.y),b.z*Math.abs(o.scale.z))}
-function create(shape:Shape){let g:THREE.BufferGeometry;if(shape==='box')g=new THREE.BoxGeometry(100,100,100);else if(shape==='cylinder')g=new THREE.CylinderGeometry(50,50,100,64);else if(shape==='sphere')g=new THREE.SphereGeometry(50,48,32);else g=new THREE.ConeGeometry(50,100,64);const o=new THREE.Mesh(g,material()) as ModelObject;o.castShadow=true;o.position.y=50;o.userData={label:shape[0].toUpperCase()+shape.slice(1)+' '+counter++,shape};scene.add(o);objects.push(o);select(o)}
-function renderList(){ $('object-count').textContent=String(objects.length);$('object-list').innerHTML=objects.length?objects.map((o,i)=>'<button class="object-item '+(o===selected?'selected':'')+'" data-index="'+i+'"><span class="object-glyph">◇</span><span>'+o.userData.label+'</span><span class="object-eye">◉</span></button>').join(''):'<div class="empty-list">Your model tree will appear here.</div>';$('object-list').querySelectorAll<HTMLButtonElement>('[data-index]').forEach(b=>b.onclick=()=>select(objects[Number(b.dataset.index)]))}
-function select(o:ModelObject|null){selected=o;transform.detach();objects.forEach(x=>x.material.emissive.setHex(x===o?0x142b55:0));if(o){transform.attach(o);$('selection-status').textContent=o.userData.label;updateMeasurements()}else{$('selection-status').textContent='No object selected';$('dimension-editor').innerHTML='<div class="empty-list">Select an object to edit its dimensions.</div>';['measure-x','measure-y','measure-z'].forEach(id=>$(id).textContent='—')}renderList()}
+function create(shape:Shape){let g:THREE.BufferGeometry;if(shape==='box')g=new THREE.BoxGeometry(100,100,100);else if(shape==='cylinder')g=new THREE.CylinderGeometry(50,50,100,64);else if(shape==='sphere')g=new THREE.SphereGeometry(50,48,32);else g=new THREE.ConeGeometry(50,100,64);const o=new THREE.Mesh(g,material()) as ModelObject;o.castShadow=true;o.position.y=50;o.userData={label:shape[0].toUpperCase()+shape.slice(1)+' '+counter++,shape};scene.add(o);objects.push(o);const empty=$('viewport-empty');if(empty)empty.style.display='none';select(o)}
+function renderList(){ $('object-count').textContent=String(objects.length);setText('object-count-footer',objects.length+' object'+(objects.length===1?'':'s'));$('object-list').innerHTML=objects.length?objects.map((o,i)=>'<button class="object-item '+(o===selected?'selected':'')+'" data-index="'+i+'"><span class="object-glyph">◇</span><span>'+o.userData.label+'</span><span class="object-eye">◉</span></button>').join(''):'<div class="empty-list">Your model tree will appear here.</div>';$('object-list').querySelectorAll<HTMLButtonElement>('[data-index]').forEach(b=>b.onclick=()=>select(objects[Number(b.dataset.index)]))}
+function select(o:ModelObject|null){selected=o;transform.detach();objects.forEach(x=>x.material.emissive.setHex(x===o?0x142b55:0));if(o){transform.attach(o);$('selection-status').textContent=o.userData.label;setText('selected-object-name',o.userData.label);setText('selected-object-type',o.userData.shape.toUpperCase()+' · 3D MESH');updateMeasurements()}else{$('selection-status').textContent='No object selected';setText('selected-object-name','No selection');setText('selected-object-type','Select a scene object');$('dimension-editor').innerHTML='<div class="empty-list">Select an object to edit its dimensions.</div>';['measure-x','measure-y','measure-z'].forEach(id=>$(id).textContent='—');const empty=$('viewport-empty');if(empty)empty.style.display='flex'}renderList()}
 function updateMeasurements(){if(!selected)return;const s=bounds(selected);$('measure-x').textContent=fmt(s.x);$('measure-y').textContent=fmt(s.y);$('measure-z').textContent=fmt(s.z);const shape=selected.userData.shape;const entries=shape==='sphere'?[['Diameter',s.x]]:shape==='box'?[['Width X',s.x],['Height Y',s.y],['Depth Z',s.z]]:[['Diameter',s.x],['Height',s.y]];$('dimension-editor').innerHTML=entries.map(([label,v],i)=>'<label class="dimension-field"><span>'+label+'</span><span class="input-wrap"><input type="number" min=".001" step=".1" data-dim="'+i+'" value="'+(Number(v)/FACTOR[unit]).toFixed(3)+'"><small>'+unit+'</small></span></label>').join('');$('dimension-editor').querySelectorAll<HTMLInputElement>('input').forEach(input=>input.onchange=()=>applyDim(Number(input.dataset.dim),Number(input.value)*FACTOR[unit]))}
 function applyDim(i:number,mm:number){if(!selected||!Number.isFinite(mm)||mm<=0)return;const o=selected,s=bounds(o),shape=o.userData.shape;if(shape==='box'){const v=[s.x,s.y,s.z];v[i]=mm;o.scale.set(v[0]/100,v[1]/100,v[2]/100)}else if(shape==='sphere')o.scale.setScalar(mm/100);else if(i===0){o.scale.x=mm/100;o.scale.z=mm/100}else o.scale.y=mm/100;updateMeasurements();renderList()}
 function download(data:string|ArrayBuffer|ArrayBufferView,name:string,type:string){const u=URL.createObjectURL(new Blob([data],{type})),a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u)}
@@ -61,6 +67,7 @@ $('grid-toggle').onclick=()=>{grid.visible=!grid.visible;$('grid-toggle').classL
 $('export-stl').onclick=()=>exportModel('stl');$('export-obj').onclick=()=>exportModel('obj');
 $('new-project').onclick=()=>{if(!confirm('Start a new project? Unsaved changes will be lost.'))return;objects.forEach(o=>scene.remove(o));objects=[];select(null)};
 $('save-project').onclick=()=>download(JSON.stringify({app:'PRISMA 3D Engineer',version:1,unit,objects:objects.map(o=>({name:o.userData.label,shape:o.userData.shape,position:o.position.toArray(),rotation:o.rotation.toArray(),scale:o.scale.toArray()}))},null,2),'prisma-project.json','application/json');
+$('gpu-card').onclick=()=>{const d=$('graphics-details') as HTMLDetailsElement;d.open=true;d.scrollIntoView({behavior:'smooth',block:'center'})};
 renderer.domElement.addEventListener('pointerdown',e=>{if(transform.dragging)return;const r=renderer.domElement.getBoundingClientRect(),p=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1),ray=new THREE.Raycaster();ray.setFromCamera(p,camera);const hit=ray.intersectObjects(objects,false)[0];select(hit?hit.object as ModelObject:null)});
 function animate(){requestAnimationFrame(animate);orbit.update();renderer.render(scene,camera)}animate();
 if('serviceWorker'in navigator&&import.meta.env.PROD)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'));
