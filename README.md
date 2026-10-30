@@ -1,44 +1,32 @@
 # PRISMA 3D Engineer
 
-Cross-platform precision 3D modeling starter for Android and Windows. The first milestone is a responsive installable web app (PWA) using Three.js and Vite, so one codebase runs in modern desktop and mobile browsers.
+PRISMA 3D Engineer is being rebuilt as a **native C++/Qt application** for Android and Windows. The native application does not use a website, PWA, browser view, Vite, Three.js, or Capacitor.
 
-## Current MVP
-- 3D viewport with orbit, zoom, pan, perspective/top/front/right views
-- Cube, cylinder, sphere, cone and plane primitives
-- Scene object list and selection
-- Move, rotate and scale gizmos
-- Real geometry dimensions displayed in mm, cm, m or inch
-- Primitive dimension editing, including plane width/depth
-- Binary STL and OBJ export
-- Save scene parameters to JSON
-- Responsive layout and basic service-worker caching
-- Adaptive WebGL 2 renderer with GPU capability detection and quality tiers
-- Compatibility path designed for Qualcomm Adreno, Arm Mali/Immortalis and desktop GPUs that expose WebGL 2
+## Native technology
+- C++17 and Qt 6 / Qt Quick Controls for the application UI.
+- Qt Quick 3D for the real-time 3D viewport.
+- Qt's supported Android graphics backend and device drivers target Qualcomm Adreno and MediaTek Mali GPUs; actual Vulkan/OpenGL ES support depends on each device and driver.
+- Geometry coordinates are stored in millimetres; display units are mm, cm, m and inch.
+- Android package target: arm64-v8a.
+- Windows desktop target: x64.
 
-## Run locally
-```bash
-npm install
-npm run dev
-```
+## Native source
+The application source is in `native/`. The old Vite/Three.js prototype remains temporarily as a reference only and is not part of the native app or its APK.
 
-## Production build
-```bash
-npm run build
-npm run preview
-```
+## Current native milestone
+- Native Qt application entry point.
+- Qt Quick 3D viewport with cube, sphere, cylinder and cone selection.
+- Dimension controls and display units: mm, cm, m and inch.
+- Android arm64 and Windows x64 CI build definitions.
 
-## Technology decision
-Three.js + TypeScript + Vite is the recommended first platform layer. It supports Windows and Android from one codebase and uses WebGL 2 rendering with a lightweight install footprint. The renderer checks WebGL 2 availability and GPU limits at startup, then adjusts antialiasing, pixel ratio and shadows for high, balanced or compatibility quality. This avoids tying the app to a Qualcomm- or MediaTek-specific SDK. Qualcomm Adreno and MediaTek devices are supported when their browser and graphics driver expose a working WebGL 2 context. WebGPU is detected as a future optional path, not required. The app can be installed as a PWA from a supported browser. A native CAD kernel such as Open CASCADE is a later engineering milestone for parametric constraints, robust Boolean operations, STEP import/export and solid validation.
+## Next engineering milestones
+- Verify native Android APK build and install on physical devices.
+- Project save/open and undo/redo.
+- Transform gizmos and viewport navigation.
+- Vertex, edge and face editing; extrude, inset and bevel.
+- Accurate mesh analysis, edge angles, area and volume.
+- Robust CAD kernel integration for Boolean operations, fillets, chamfers and STEP.
+- Native Windows installer and signed Android release APK.
 
-## Units and precision
-Internal model coordinates use millimetres. Unit selection changes display and input conversion only; it does not rescale stored geometry. This prevents unit drift when switching between mm, cm, m and inches.
-
-## Roadmap
-1. Undo/redo, project import, autosave and object naming.
-2. Full Blender-style vertex/edge/face editing, extrusion, inset, bevel, snapping, constraints and dimension annotations.
-3. CAD kernel integration for robust Boolean, fillet/chamfer and STEP.
-4. Technical drawings, tolerances, assemblies and BOM.
-5. Desktop packaging and Android native shell if browser PWA limits are reached.
-
-## Engineering disclaimer
-This is an early interactive modeling prototype, not a certified parametric CAD system. Arbitrary mesh editing, constraints, technical drawings, STEP support, robust Boolean/fillet/chamfer tools and validated manufacturing tolerances are not implemented yet. Verify engineering outputs in a qualified CAD workflow before fabrication.
+## Engineering note
+This is an early native 3D modeling foundation, not yet a full parametric CAD system or a certified manufacturing tool. Mesh volume and manufacturing tolerances require validation before fabrication.
